@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src https://ddragon.leagueoflegends.com data:; style-src 'self' 'unsafe-inline'; connect-src https://ddragon.leagueoflegends.com;"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="titlebar">
+        <span id="title">적 스펠 타이머</span>
+        <div class="right">
+          <span id="status" title="게임 연결 상태">●</span>
+          <span id="close" title="닫기">✕</span>
+        </div>
+      </div>
+
+      <div id="enemies"></div>
+
+      <div id="empty">
+        게임 대기 중…
+        <br />
+        <small>게임에 입장하면 적 챔피언/스펠이 표시됩니다.<br />스펠 아이콘을 클릭하면 쿨이 돌아갑니다.</small>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
