@@ -22,7 +22,7 @@
       "styles.css"
     ],
     "win": {
-      "target": "portable"
+      "target": ["portable", "zip"]
     },
     "portable": {
       "artifactName": "LoL-Spell-Timer.exe"
