@@ -20,9 +20,8 @@ body {
   flex-direction: column;
 }
 
-/* 타이틀바를 잡고 창을 드래그해서 옮길 수 있음 */
+/* 타이틀바를 잡고 창을 드래그해서 옮길 수 있음 (JS로 처리) */
 #titlebar {
-  -webkit-app-region: drag;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -158,4 +157,28 @@ body {
 ::-webkit-scrollbar-thumb {
   background: rgba(200, 170, 90, 0.4);
   border-radius: 3px;
+}
+
+/* 챔피언 이미지 로드 실패 시 이니셜 플레이스홀더 */
+.champ-ph {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  border: 1px solid rgba(200, 170, 90, 0.4);
+  background: #1a2233;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c8aa6e;
+  flex-shrink: 0;
+}
+
+/* 스펠 이미지 로드 실패 / 미인식 스펠 플레이스홀더 */
+.spell-ph {
+  font-size: 11px;
+  font-weight: 700;
+  color: #aaa;
+  pointer-events: none;
 }

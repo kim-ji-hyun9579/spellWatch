@@ -115,6 +115,14 @@ ipcMain.on('set-ignore-mouse', (_, ignore) => {
   }
 });
 
+// 타이틀바 JS 드래그 → 창 이동
+ipcMain.on('move-window', (_, { dx, dy }) => {
+  if (win && !win.isDestroyed()) {
+    const [x, y] = win.getPosition();
+    win.setPosition(x + dx, y + dy);
+  }
+});
+
 app.whenReady().then(() => {
   writeLog('INFO', `SpellWatch 시작 — 로그: ${LOG_PATH}`);
   createWindow();

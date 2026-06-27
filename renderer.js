@@ -314,18 +314,52 @@ async function poll() {
 
 const INTERACTIVE_SELECTOR = '.spell, #titlebar, #close, #status';
 
+// ── 타이틀바 JS 드래그 ───────────────────────────────────────────
+// -webkit-app-region: drag 는 click-through(setIgnoreMouseEvents)와 충돌해서
+// mousedown → mousemove 방식으로 직접 창 이동 처리
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+const titlebar = document.getElementById('titlebar');
+
+titlebar.addEventListener('mousedown', (e) => {
+  if (e.target.id === 'close') return; // 닫기 버튼은 드래그 제외
+  isDragging = true;
+  dragStartX = e.screenX;
+  dragStartY = e.screenY;
+  window.lcu.setIgnoreMouse(false);
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.screenX - dragStartX;
+  const dy = e.screenY - dragStartY;
+  dragStartX = e.screenX;
+  dragStartY = e.screenY;
+  window.lcu.moveWindow(dx, dy);
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    window.lcu.setIgnoreMouse(true);
+  }
+});
+
+// ── Click-Through 토글 (스펠 클릭용) ────────────────────────────
 document.addEventListener('mouseover', (e) => {
   if (e.target.closest(INTERACTIVE_SELECTOR)) {
-    window.lcu.setIgnoreMouse(false); // 클릭을 오버레이가 받음
+    window.lcu.setIgnoreMouse(false);
   }
 });
 
 document.addEventListener('mouseleave', () => {
-  window.lcu.setIgnoreMouse(true); // 다시 게임으로 통과
+  if (!isDragging) window.lcu.setIgnoreMouse(true);
 });
 
-// mouseover에서 대상 밖으로 나갈 때도 즉시 통과 복원
 document.addEventListener('mouseout', (e) => {
+  if (isDragging) return;
   if (
     e.target.closest(INTERACTIVE_SELECTOR) &&
     !e.relatedTarget?.closest(INTERACTIVE_SELECTOR)
