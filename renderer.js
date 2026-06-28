@@ -26,8 +26,9 @@ const FALLBACK_COOLDOWNS = {
   SummonerBarrier: 180,                   // 방어막
   SummonerHaste: 240,                     // 유체화 (Ghost)
   SummonerBoost: 210,                     // 정화 (Cleanse)
-  // 헥스플래시 (우주적 통찰 룬)
+  // 헥스플래시 (우주적 통찰 룬) — V1, V2 둘 다 대응
   SummonerFlashPerksHextechFlashtraption: 20,
+  SummonerFlashPerksHextechFlashtraptionV2: 20,
   // ARAM
   SummonerSnowball: 80,                   // 표식 (Mark)
   SummonerSnowURFSnowball_Mark: 80,
@@ -58,17 +59,28 @@ async function loadDdragon() {
 }
 
 // ── [FIX 2] 챔피언 이미지 URL ────────────────────────────────────
-// rawChampionName이 없거나 비는 케이스: championName에서 폴백 추출
-// 단, championName은 로케일(한국어) 이름이라 직접 쓰면 안 되고
-// 표시명→ddragon ID 매핑이 필요한 경우가 있음.
-// → 이미지 로드 실패 시 자동으로 이니셜 플레이스홀더로 대체 (onerror)
-function champImg(rawChampionName, championName) {
-  let id = "";
+// rawChampionName 패턴이 두 가지 존재:
+// 패턴A: "game_character_displayname_Seraphine" → "Seraphine"
+// 패턴B: "Character_Seraphine_Name"             → "Seraphine"
+function extractChampId(rawChampionName, championName) {
   if (rawChampionName) {
-    id = rawChampionName.replace("game_character_displayname_", "").trim();
+    // 패턴A
+    if (rawChampionName.startsWith("game_character_displayname_")) {
+      return rawChampionName.replace("game_character_displayname_", "").trim();
+    }
+    // 패턴B: "Character_Seraphine_Name" → 중간 토큰 추출
+    const m = rawChampionName.match(/^Character_(.+)_Name$/);
+    if (m) return m[1].trim();
   }
-  // rawChampionName이 비어있으면 championName에서 영문자만 추출 (폴백)
-  if (!id) id = (championName || "").replace(/[^A-Za-z]/g, "");
+  // 폴백: championName에서 영문자만 (한국어면 빈 문자열이 되지만 onerror가 처리)
+  return (championName || "").replace(/[^A-Za-z]/g, "");
+}
+
+// 이미지 로드 실패한 챔프는 캐싱 → 2초 폴링마다 로그 도배 방지
+const failedChampImages = new Set();
+
+function champImg(rawChampionName, championName) {
+  const id = extractChampId(rawChampionName, championName);
   return `${DDRAGON}/cdn/${VERSION}/img/champion/${id}.png`;
 }
 
@@ -135,9 +147,13 @@ function render(enemies) {
     // [FIX 2] 이미지 로드 실패 시 이니셜 플레이스홀더로 대체
     champ.onerror = function () {
       this.onerror = null;
-      const msg = `챔피언 이미지 로드 실패: championName="${p.championName}" rawChampionName="${p.rawChampionName || ''}" src="${this.src}"`;
-      console.error(msg);
-      window.lcu.logError(msg);
+      // 이미 실패 기록된 챔프는 로그 중복 방지
+      if (!failedChampImages.has(p.championName)) {
+        failedChampImages.add(p.championName);
+        const msg = `챔피언 이미지 로드 실패: championName="${p.championName}" rawChampionName="${p.rawChampionName || ''}" src="${this.src}"`;
+        console.error(msg);
+        window.lcu.logError(msg);
+      }
       this.style.display = "none";
       const ph = document.createElement("div");
       ph.className = "champ-ph";
@@ -313,6 +329,17 @@ async function poll() {
 //       나머지 빈 공간은 전부 게임으로 통과 → 이동/스킬 사용에 지장 없음
 
 const INTERACTIVE_SELECTOR = '.spell, #titlebar, #close, #status';
+const RESIZE_MARGIN = 6; // 창 테두리에서 몇 px 안쪽까지 리사이즈 영역으로 볼지
+
+// 마우스가 창 테두리(리사이즈 핸들) 근처인지 판별
+function isNearEdge(e) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const x = e.clientX;
+  const y = e.clientY;
+  return x <= RESIZE_MARGIN || x >= w - RESIZE_MARGIN ||
+         y <= RESIZE_MARGIN || y >= h - RESIZE_MARGIN;
+}
 
 // ── 타이틀바 JS 드래그 ───────────────────────────────────────────
 // -webkit-app-region: drag 는 click-through(setIgnoreMouseEvents)와 충돌해서
@@ -347,9 +374,25 @@ document.addEventListener('mouseup', () => {
   }
 });
 
-// ── Click-Through 토글 (스펠 클릭용) ────────────────────────────
-document.addEventListener('mouseover', (e) => {
+// ── Click-Through 토글 (스펠 클릭 + 리사이즈용) ─────────────────
+document.addEventListener('mousemove', (e) => {
+  if (isDragging) return;
+  // 창 테두리 근처: 리사이즈 가능하도록 click-through 끄기
+  if (isNearEdge(e)) {
+    window.lcu.setIgnoreMouse(false);
+    return;
+  }
+  // 클릭 가능 요소 위: click-through 끄기
   if (e.target.closest(INTERACTIVE_SELECTOR)) {
+    window.lcu.setIgnoreMouse(false);
+    return;
+  }
+  // 그 외 빈 영역: 게임으로 통과
+  window.lcu.setIgnoreMouse(true);
+});
+
+document.addEventListener('mouseover', (e) => {
+  if (isNearEdge(e) || e.target.closest(INTERACTIVE_SELECTOR)) {
     window.lcu.setIgnoreMouse(false);
   }
 });

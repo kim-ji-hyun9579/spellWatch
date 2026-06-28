@@ -1,6 +1,6 @@
 {
   "name": "lol-spell-overlay",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "LoL 적 소환사 스펠 쿨다운 오버레이 (수동 클릭 방식)",
   "main": "main.js",
   "scripts": {
